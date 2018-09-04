@@ -1,7 +1,3 @@
-import argparse
-import sqlalchemy
-
-
 def find_next_sep(line, start, sep=','):
   """ find next comma, disregard sep between quotes (")  """
   """ e.g., line='abc , "5,000"', start=4 should return next sep length (end of line) """
@@ -26,7 +22,7 @@ def find_next_sep(line, start, sep=','):
       if len(stack) == 0:
         return index
     index += 1
-       
+
 
 def split(line, sep=','):
   """ like split """
@@ -40,11 +36,15 @@ def split(line, sep=','):
     ret.append(token)
     start = index
   return ret
-      
-    
+
 
 def get_headers(header_line):
   """ get fields of table """
-  headers = [h.replace('"', '').strip() for h in header_line.split(',')]
+  return [h.replace('"', '').strip() for h in header_line.split(',')]
 
-  return headers
+
+def write_headers(table_name, headers, path):
+  """ get a dict of (name, type) """
+  with open(os.path.join(path, table_name+'_headers.txt'), 'w') as f:
+    for header in headers:
+      f.write(header + '\n')

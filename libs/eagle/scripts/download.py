@@ -27,7 +27,7 @@ LINK_TMPLS = {
         'https://www.cftc.gov/files/dea/history/deacot%s.zip',
         1986, '1986_2016'),
   'FOC': links('Futures-and-Options Combined Reports',
-        'https://www.cftc.gov/files/dea/history/deahistfo%s.zip',
+        'https://www.cftc.gov/files/dea/history/deahistfo_%s.zip',
         1995, '1995_2016'),
   'CITS': links('Commodity Index Trader Supplement',
         'https://www.cftc.gov/files/dea/history/dea_cit_txt_%s.zip',
@@ -39,6 +39,10 @@ def download_by_year(link, year, path, force=False):
   """ download files by year """
   url = link.link % year
   filename = url.split('/')[-1]
+  # bug fixing
+  if link.description == 'Futures-and-Options Combined Reports' and year >= 2004:
+    url = 'https://www.cftc.gov/files/dea/history/deahistfo%s.zip' % year
+    filename = 'deahistfo_%s.zip' % year
   localpath = os.path.join(path, filename)
   if os.path.exists(localpath):
     if force:
@@ -74,16 +78,25 @@ def unzip_file(path, new_path=None, force=False):
   return new_path
 
 
-def download_all_years(path, unzip=False, force=False):
+def download_all_years(table, path, unzip=False, force=False):
   """ download all data """
   ret = []
-  for key, link in LINK_TMPLS.iteritems():
-    if key != 'DFO':
-      continue
+  if table is None:
+    types = LINK_TMPLS
+  else:
+    if table not in LINK_TMPLS:
+      logging.error('unknkown table type: %s', table)
+      return ret
+    types = {table: LINK_TMPLS[table]}
+
+  for key, link in types.iteritems():
+    sub_path = os.path.join(path, key)
+    if not os.path.exists(sub_path):
+      os.makedirs(sub_path)
     year = link.since
     while year <= this_year:
       logging.info('downloading year: %s', year)
-      filename = download_by_year(link, year, path, force=force)
+      filename = download_by_year(link, year, sub_path, force=force)
       print filename
       if unzip:
         try:

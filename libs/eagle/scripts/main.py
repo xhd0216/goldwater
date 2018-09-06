@@ -11,27 +11,11 @@ def get_header_prefix(header):
   """ return the prefix of a header """
   return header.replace('_', '&').replace('-', '&').replace(' ', '&').split('&')[0].lower()
 
-"""
-=============== TFF
-['As', 'Asset', 'CFTC', 'Change', 'Conc', 'Contract', 'Dealer', 'FutOnly', 'Lev', 'Market', 'NonRept', 'Open', 'Other', 'Pct', 'Report', 'Tot', 'Traders']
-=============== CITS
-['As', 'CFTC', 'CIT', 'Change', 'Comm', 'Contract', 'Market', 'NComm', 'NonRept', 'Open', 'Pct', 'Tot', 'Traders']
-=============== FO
-['%', 'As', 'CFTC', 'Change', 'Commercial', 'Concentration', 'Contract', 'Market', 'Noncommercial', 'Nonreportable', 'Open', 'Total', 'Traders']
-=============== DFO
-['As', 'CFTC', 'Change', 'Conc', 'Contract', 'FutOnly', 'M', 'Market', 'NonRept', 'Open', 'Other', 'Pct', 'Prod', 'Report', 'Swap', 'Tot', 'Traders']
-=============== FOC
-['%', 'As', 'CFTC', 'Change', 'Commercial', 'Concentration', 'Contract', 'Market', 'Noncommercial', 'Nonreportable', 'Open', 'Total', 'Traders']
-=============== TFOC
-['As', 'Asset', 'CFTC', 'Change', 'Conc', 'Contract', 'Dealer', 'FutOnly', 'Lev', 'Market', 'NonRept', 'Open', 'Other', 'Pct', 'Report', 'Tot', 'Traders']
-=============== DFOC
-['As', 'CFTC', 'Change', 'Conc', 'Contract', 'FutOnly', 'M', 'Market', 'NonRept', 'Open', 'Other', 'Pct', 'Prod', 'Report', 'Swap', 'Tot', 'Traders']
-"""
 
 
 def generate_fields_for_table(path):
   """ generate fields and types """
-  header_file = os.path.join(path, 'headers_2018')
+  header_file = os.path.join(path, 'headers')
   out_file = os.path.join(path, 'fields')
   with open(header_file, 'r') as f, open(out_file, 'w') as g:
     for hs in f.readlines():
@@ -55,6 +39,7 @@ def generate_fields_for_table(path):
       else:
         raise ValueError('invalid prefix %s in %s', pref, path)
       g.write(field + ':' + field_type + '\n')
+  return out_file
 
 
 def main():
@@ -70,7 +55,12 @@ def main():
   if not opts.year:
     ret = download_all_years(opts.table, opts.path, opts.unzip)
     if opts.unzip:
+      def get_table_name(fold):
+        """ foler is like ./data/DFO/deahis_2018 , return DFO """
+        return os.path.basename(os.path.split(fold)[0])
       for folder in ret:
+        if '2018' not in folder:
+          continue
         txt = [f for f in os.listdir(folder) if f[-4:].lower() == '.txt']
         assert len(txt) == 1
         filepath = os.path.join(folder, txt[0])
@@ -79,17 +69,18 @@ def main():
         headers = upload.get_headers(lines[0])
         data = upload.split(lines[1], ',')
         assert len(headers) == len(data)
-        with open(os.path.join(folder, 'headers'), 'w') as f:
+        up_dir = os.path.join(folder, '../')
+        with open(os.path.join(up_dir, 'headers'), 'w') as f:
           for a in zip(headers, data):
             f.write(a[0] + ';' + a[1] + '\n')
-        if '2018' in folder:
-          print "=====================", folder
-          shutil.copyfile(os.path.join(folder, 'headers'), os.path.join(folder, '../', 'headers_2018'))
-          generate_fields_for_table(os.path.join(folder, '../'))
-  else:
-    download_by_year(opts.year, opts.path)
+        fields = generate_fields_for_table(up_dir)
+        upload.create_db_file(up_dir)
+
+      for folder in ret:
+        upload.insert_to_table(folder)
 
   exit(0)
+
 
 
 if __name__=='__main__':

@@ -1,3 +1,106 @@
+import os
+import sqlalchemy as sa
+
+def insert_to_table(path):
+  txt = [f for f in os.listdir(path) if f[-4:].lower() == '.txt']
+  assert len(txt) == 1
+  data_path = os.path.join(path, txt[0])
+
+  up_dir = os.path.join(path, '../')
+  fields_path = os.path.join(up_dir, 'fields')
+
+  # get column name:type
+  res = get_columns(fields_path)
+  ret = []
+  with open(data_path, 'r') as d:
+    lines = d.readlines()[1:]
+  # get all rows
+  for line in lines:
+    row = {}
+    data = split(line, ',')
+    assert len(data) == len(res)
+    for i in range(len(data)):
+      try:
+        if res[i][1] == sa.Integer:
+          if data[i] == '.':
+            dt = 0
+          else:
+            dt = int(data[i])
+        elif res[i][1] == sa.Float:
+          if data[i] == '.':
+            dt = 0
+          else:
+            dt = float(data[i])
+        elif res[i][1] == sa.String(60) or res[i][1] == sa.String(20):
+          dt = data[i]
+        else:
+          #raise ValueError('unknow type %s', res[i][1])
+          dt = data[i]
+      except Exception as e:
+        print i, line, data, res, path
+        raise e
+      row[res[i][0]] = dt
+    ret.append(row)
+  db_path = os.path.join(up_dir, 'db.db')
+  engine = sa.create_engine('sqlite:///' + db_path)
+  meta = sa.MetaData(engine, reflect=True)
+  table = meta.tables['table']
+  conn = engine.connect()
+  conn.execute(table.insert(), ret)
+  conn.close()
+  print "done:", path
+
+
+def create_db_file(path):
+  db_file = os.path.join(path, 'db.db')
+  engine = sa.create_engine('sqlite:///' + db_file)
+  meta = sa.MetaData(engine)
+  if not engine.dialect.has_table(engine, 'table'):
+    table = create_table_schema(meta, 'table', os.path.join(path, 'fields'))
+    table.create()
+
+
+def create_table_schema(meta, name, path):
+  cols = create_table_columns(path)
+  return sa.Table(name, meta, *cols) 
+
+
+def create_table_columns(path):
+  """ create columns give path to 'fields' file """
+  res = get_columns(path)
+  return [sa.Column(nam, typ) for (nam, typ) in res]
+
+
+def get_columns(path):
+  ret = []
+  with open(path, 'r') as f:
+    for field in f.readlines():
+      line = field.split(':')
+      nam = line[0]
+      typ = line[1].strip()
+      if typ == 'int':
+        typ = sa.Integer
+      elif typ == 'str':
+        typ = sa.String(60)
+      elif typ == 'date':
+        typ = sa.String(20)
+      elif typ == 'float':
+        typ = sa.Float
+      else:
+        raise ValueError('unknown type %s', typ)
+      ret.append((nam, typ))
+  return ret
+
+
+def get_columns_type(path):
+  """ return an array of types """
+  ret = []
+  with open(path, 'r') as f:
+    for field in f.readlines()[1:]:
+      ret.append(field.split(':')[1])
+  return ret
+
+
 def find_next_sep(line, start, sep=','):
   """ find next comma, disregard sep between quotes (")  """
   """ e.g., line='abc , "5,000"', start=4 should return next sep length (end of line) """
@@ -25,7 +128,7 @@ def find_next_sep(line, start, sep=','):
 
 
 def split(line, sep=','):
-  """ like split """
+  """ like str.split """
   """ assumption: the line does not end with sep """
   start = -1
   length = len(line)

@@ -1,6 +1,9 @@
 import os
 import sqlalchemy as sa
 
+TABLE_NAME='data_table'
+DATABASE_NAME='db.db'
+
 def insert_to_table(path):
   txt = [f for f in os.listdir(path) if f[-4:].lower() == '.txt']
   assert len(txt) == 1
@@ -44,19 +47,22 @@ def insert_to_table(path):
   db_path = os.path.join(up_dir, 'db.db')
   engine = sa.create_engine('sqlite:///' + db_path)
   meta = sa.MetaData(engine, reflect=True)
-  table = meta.tables['table']
+  table = meta.tables[TABLE_NAME]
   conn = engine.connect()
-  conn.execute(table.insert(), ret)
+  try:
+    conn.execute(table.insert().prefix_with("OR REPLACE"), ret)
+  except Exception as e:
+    print e
   conn.close()
   print "done:", path
 
 
-def create_db_file(path):
-  db_file = os.path.join(path, 'db.db')
+def create_db_file(path, db_name=DATABASE_NAME):
+  db_file = os.path.join(path, db_name)
   engine = sa.create_engine('sqlite:///' + db_file)
   meta = sa.MetaData(engine)
-  if not engine.dialect.has_table(engine, 'table'):
-    table = create_table_schema(meta, 'table', os.path.join(path, 'fields'))
+  if not engine.dialect.has_table(engine, TABLE_NAME):
+    table = create_table_schema(meta, TABLE_NAME, os.path.join(path, 'fields'))
     table.create()
 
 
@@ -68,7 +74,13 @@ def create_table_schema(meta, name, path):
 def create_table_columns(path):
   """ create columns give path to 'fields' file """
   res = get_columns(path)
-  return [sa.Column(nam, typ) for (nam, typ) in res]
+  ret = []
+  for (nam, typ) in res:
+    if ('market' in nam and 'names' in nam) or 'yyyy_mm_dd' in nam:
+      ret.append(sa.Column(nam, typ, primary_key=True))
+    else:
+      ret.append(sa.Column(nam, typ))
+  return ret
 
 
 def get_columns(path):

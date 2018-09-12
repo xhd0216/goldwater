@@ -1,11 +1,12 @@
 import datetime
 import logging
 import sqlalchemy as sa
+import sys
 
+from upload import TABLE_NAME, DATABASE_NAME
 
 BEGIN_DATE = '1970-01-01'
 END_DATE = '2070-01-01'
-TABLE_NAME = 'table'
 MARKET_EXCHANGE_NAME = 'market_and_exchange_names'
 DISAGG_RECORD_DATE = 'report_date_as_yyyy_mm_dd'
 
@@ -78,6 +79,7 @@ def retrieve_commodity_data(engine, comm):
     
 
 if __name__ == '__main__':
+  logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
   # validate DFO and DFOC db
   # FO and FOC has different set of columns
   for db in ['DFO', 'DFOC']:

@@ -11,12 +11,19 @@ def insert_to_table(path):
 
   up_dir = os.path.join(path, '../')
   fields_path = os.path.join(up_dir, 'fields')
+  db_path = os.path.join(up_dir, 'db.db')
+  insert_to_table_2(data_path, field_path, db_path, header_on=True)
 
+
+def insert_to_table_2(data_path, fields_path, db_path, header_on):
   # get column name:type
   res = get_columns(fields_path)
   ret = []
   with open(data_path, 'r') as d:
-    lines = d.readlines()[1:]
+    lines = d.readlines()
+  if header_on:
+    lines = lines[1:]
+
   # get all rows
   for line in lines:
     row = {}
@@ -44,7 +51,6 @@ def insert_to_table(path):
         raise e
       row[res[i][0]] = dt
     ret.append(row)
-  db_path = os.path.join(up_dir, 'db.db')
   engine = sa.create_engine('sqlite:///' + db_path)
   meta = sa.MetaData(engine, reflect=True)
   table = meta.tables[TABLE_NAME]
@@ -54,7 +60,7 @@ def insert_to_table(path):
   except Exception as e:
     print e
   conn.close()
-  print "done:", path
+  print "done:", data_path
 
 
 def create_db_file(path, db_name=DATABASE_NAME):

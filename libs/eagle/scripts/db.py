@@ -85,6 +85,6 @@ if __name__ == '__main__':
   for db in ['DFO', 'DFOC']:
     print 'working on', db
     engine = sa.create_engine('sqlite:///./data/%s/db.db' % db)
-    for comm in ['GOLD', 'SILVER']:
+    for comm in ['GOLD', 'SILVER', 'WHEAT-SRW - CHICAGO BOARD OF TRADE']:
       print 'working on', comm
       retrieve_commodity_data(engine, comm)

@@ -6,32 +6,41 @@ import os
 import requests
 import zipfile
 
-links = namedtuple('links', ['description', 'link', 'since', 'early'])
+from upload import insert_to_table_2
+
+links = namedtuple('links', ['description', 'link', 'since', 'early', 'weekly'])
 
 this_year = datetime.datetime.now().year
 
 LINK_TMPLS = {
   'DFO': links('Disaggregated Futures Only Reports',
         'https://www.cftc.gov/files/dea/history/fut_disagg_txt_%s.zip',
-        2010, '2006_2016'),
+        2010, '2006_2016',
+        'https://www.cftc.gov/dea/newcot/f_disagg.txt'),
   'DFOC': links('Disaggregated Futures-and-Options Combined Reports',
         'https://www.cftc.gov/files/dea/history/com_disagg_txt_%s.zip',
-        2010, '2006_2016'),
+        2010, '2006_2016',
+        'https://www.cftc.gov/dea/newcot/c_disagg.txt'),
   'TFF': links('Traders in Financial Futures ; Futures Only Reports',
         'https://www.cftc.gov/files/dea/history/fut_fin_txt_%s.zip',
-        2010, '2006_2016'),
+        2010, '2006_2016',
+        'https://www.cftc.gov/dea/newcot/FinFutWk.txt'),
   'TFOC': links('Traders in Financial Futures ; Futures-and-Options Combined Reports',
         'https://www.cftc.gov/files/dea/history/com_fin_txt_%s.zip',
-        2010, '2006_2016'),
+        2010, '2006_2016',
+        'https://www.cftc.gov/dea/newcot/FinComWk.txt'),
   'FO': links('Futures Only Reports',
         'https://www.cftc.gov/files/dea/history/deacot%s.zip',
-        1986, '1986_2016'),
+        1986, '1986_2016',
+        'https://www.cftc.gov/dea/newcot/deafut.txt'),
   'FOC': links('Futures-and-Options Combined Reports',
         'https://www.cftc.gov/files/dea/history/deahistfo_%s.zip',
-        1995, '1995_2016'),
+        1995, '1995_2016',
+        'https://www.cftc.gov/dea/newcot/deacom.txt'),
   'CITS': links('Commodity Index Trader Supplement',
         'https://www.cftc.gov/files/dea/history/dea_cit_txt_%s.zip',
-        2006, '2006_2016'),
+        2006, '2006_2016',
+        'https://www.cftc.gov/dea/newcot/deacit.txt'),
 }
 
 
@@ -110,3 +119,23 @@ def download_all_years(table, path, unzip=False, force=False):
         ret.append(filename)
       year += 1
   return ret
+
+
+def download_weekly_file(path, table=None, store=None):
+  """ download weekly file """
+  if table is None:
+    types = LINK_TMPLS
+  else:
+    if table not in LINK_TMPLS:
+      #logging.error('unknkown table type: %s', table)
+      raise ValueError('unknown table type: %s' % table)
+    types = {table: LINK_TMPLS[table]}
+
+  for key, link in types.iteritems(): 
+    resp = requests.get(link.weekly)
+    if resp.status_code != 200:
+      logging.error('failed to download file %s, response code: ', url, resp.status_code)
+      continue
+    open('./weekly_%s'%key, 'wb').write(resp.content)
+
+    insert_to_table_2('./weekly_%s'%key, './data/%s/fields'%key, './data/%s/db.db'%key, header_on=False)

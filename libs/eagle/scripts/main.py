@@ -4,7 +4,7 @@ import os
 import shutil
 import sys
 
-from download import download_all_years
+from download import download_all_years, download_weekly_file
 import upload
 
 def get_header_prefix(header):
@@ -49,9 +49,13 @@ def main():
   parser.add_argument('--unzip', action='store_true', default=False)
   parser.add_argument('--force', action='store_true', default=False)
   parser.add_argument('--table', action='store')
+  parser.add_argument('--update', action='store_true', default=False)
 
   opts = parser.parse_args()
 
+  if opts.update:
+    download_weekly_file(None)
+    exit(0)
   if not opts.year:
     ret = download_all_years(opts.table, opts.path, opts.unzip)
     if opts.unzip:

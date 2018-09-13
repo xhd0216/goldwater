@@ -8,6 +8,6 @@ setup(
   install_requires=[
     'argparse',
     'sqlalchemy',
-    'collections',
+    #'collections',
   ]
 )

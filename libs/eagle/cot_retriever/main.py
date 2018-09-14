@@ -54,7 +54,7 @@ def main():
   opts = parser.parse_args()
 
   if opts.update:
-    download_weekly_file(None)
+    download_weekly_file(opts.path)
     exit(0)
   if not opts.year:
     ret = download_all_years(opts.table, opts.path, opts.unzip)

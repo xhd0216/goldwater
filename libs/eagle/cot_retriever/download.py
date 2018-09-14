@@ -136,6 +136,10 @@ def download_weekly_file(path, table=None, store=None):
     if resp.status_code != 200:
       logging.error('failed to download file %s, response code: ', url, resp.status_code)
       continue
-    open('./weekly_%s'%key, 'wb').write(resp.content)
+    weekly_file = os.path.join(path, 'weekly_%s' % key)
+    field_file = os.path.join(path, key, 'fields')
+    db_file = os.path.join(path, key, 'db.db')
+    print "============", field_file
+    open(weekly_file, 'wb').write(resp.content)
 
-    insert_to_table_2('./weekly_%s'%key, './data/%s/fields'%key, './data/%s/db.db'%key, header_on=False)
+    insert_to_table_2(weekly_file, field_file, db_file, header_on=False)

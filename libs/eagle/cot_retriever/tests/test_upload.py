@@ -1,4 +1,4 @@
-from upload import split
+from cot_retriever.upload import split
 
 def test_split():
   assert split('a, b, c') == ['a', 'b', 'c']

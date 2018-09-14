@@ -12,11 +12,12 @@ def insert_to_table(path):
   up_dir = os.path.join(path, '../')
   fields_path = os.path.join(up_dir, 'fields')
   db_path = os.path.join(up_dir, 'db.db')
-  insert_to_table_2(data_path, field_path, db_path, header_on=True)
+  insert_to_table_2(data_path, fields_path, db_path, header_on=True)
 
 
 def insert_to_table_2(data_path, fields_path, db_path, header_on):
   # get column name:type
+  print "==============", fields_path
   res = get_columns(fields_path)
   ret = []
   with open(data_path, 'r') as d:

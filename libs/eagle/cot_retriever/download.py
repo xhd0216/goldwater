@@ -43,14 +43,19 @@ LINK_TMPLS = {
         'https://www.cftc.gov/dea/newcot/deacit.txt'),
 }
 
+def get_url_content(url):
+  resp = requests.get(url)
+  if resp.status_code != 200:
+    logging.error('failed to download url %s, response code: %s', url, resp.status_code)
+    return None
+  return resp.content
+
+
 GLD_DOWNLOAD_URL = 'http://www.spdrgoldshares.com/assets/dynamic/GLD/GLD_US_archive_EN.csv'
 
 def download_gld_price(url=GLD_DOWNLOAD_URL, comm='gld', store_path=None):
-  resp = requests.get(url)
-  if resp.status_code != 200:
-    logging.error('failed to download url %s, response code: ', url , resp.status_code)
-    return None
-  lines = resp.content.split('\n')[6:]
+  resp = get_url_content(url)
+  lines = resp.split('\n')[6:]
   if store_path is not None:
     open(os.path.join(store_path, comm), 'wb').write(resp.content)
     insert_gld_table(lines, store_path, comm)
@@ -73,11 +78,8 @@ def download_by_year(link, year, path, force=False):
     else:
       logging.error('file already exists %s', localpath)
       return localpath
-  resp = requests.get(url)
-  if resp.status_code != 200:
-    logging.error('failed to download file %s, response code: ', url, resp.status_code)
-    return None
-  open(localpath, 'wb').write(resp.content)
+  resp = get_url_content(url)
+  open(localpath, 'wb').write(resp)
   logging.info('downloaded file: %s', localpath)
   return localpath
 
@@ -146,14 +148,12 @@ def download_weekly_file(path, table=None, store=None):
     types = {table: LINK_TMPLS[table]}
 
   for key, link in types.iteritems(): 
-    resp = requests.get(link.weekly)
-    if resp.status_code != 200:
-      logging.error('failed to download file %s, response code: ', url, resp.status_code)
+    resp = get_url_content(link.weekly)
+    if not resp:
       continue
     weekly_file = os.path.join(path, 'weekly_%s' % key)
     field_file = os.path.join(path, key, 'fields')
     db_file = os.path.join(path, key, 'db.db')
-    print "============", field_file
-    open(weekly_file, 'wb').write(resp.content)
+    open(weekly_file, 'wb').write(resp)
 
     insert_to_table_2(weekly_file, field_file, db_file, header_on=False)

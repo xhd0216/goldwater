@@ -6,7 +6,7 @@ import os
 import requests
 import zipfile
 
-from upload import insert_to_table_2
+from upload import insert_to_table_2, insert_gld_table
 
 links = namedtuple('links', ['description', 'link', 'since', 'early', 'weekly'])
 
@@ -42,6 +42,20 @@ LINK_TMPLS = {
         2006, '2006_2016',
         'https://www.cftc.gov/dea/newcot/deacit.txt'),
 }
+
+GLD_DOWNLOAD_URL = 'http://www.spdrgoldshares.com/assets/dynamic/GLD/GLD_US_archive_EN.csv'
+
+def download_gld_price(url=GLD_DOWNLOAD_URL, comm='gld', store_path=None):
+  resp = requests.get(url)
+  if resp.status_code != 200:
+    logging.error('failed to download url %s, response code: ', url , resp.status_code)
+    return None
+  lines = resp.content.split('\n')[6:]
+  if store_path is not None:
+    open(os.path.join(store_path, comm), 'wb').write(resp.content)
+    insert_gld_table(lines, store_path, comm)
+  return lines
+
 
 
 def download_by_year(link, year, path, force=False):

@@ -76,7 +76,8 @@ def retrieve_commodity_data(engine, comm):
       assert_date(get_record_date(last_record), get_record_date(r))
       assert_changes(last_record, r)
     last_record = r
-    
+  return res
+
 
 if __name__ == '__main__':
   logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)

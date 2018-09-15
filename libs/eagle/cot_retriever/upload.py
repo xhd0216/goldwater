@@ -4,6 +4,15 @@ import sqlalchemy as sa
 TABLE_NAME='data_table'
 DATABASE_NAME='db.db'
 
+def insert_gld_table(lines, path, comm='gld'):
+  """ create and insert gld db """
+  headers = split(lines[0])
+  lines = lines[1:]
+  headers = [h.replace(' ', '_').replace('.', '').replace('#', '').replace('/', '_') for h in headers]
+  db_path = os.path.join(path, comm + '.db')
+  lines = lines[1:]
+
+
 def insert_to_table(path):
   txt = [f for f in os.listdir(path) if f[-4:].lower() == '.txt']
   assert len(txt) == 1
@@ -17,7 +26,6 @@ def insert_to_table(path):
 
 def insert_to_table_2(data_path, fields_path, db_path, header_on):
   # get column name:type
-  print "==============", fields_path
   res = get_columns(fields_path)
   ret = []
   with open(data_path, 'r') as d:

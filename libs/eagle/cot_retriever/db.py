@@ -61,7 +61,6 @@ def assert_changes(a, b):
   for (c, d) in zip(DISAGG_ALLS, DISAGG_CHANGES):
     if b[c] - b[d] != a[c]:
       logging.info('data not exactly matched: %s' % get_record_date(b))
-      #print 'warning: data not valid:\ndate: %s\ncolumn: %s\nnew: %s\nold: %s\nchange: %s\nreal diff: %s\n' % (get_record_date(b), c, b[c], a[c], b[d], b[c]-a[c])
       assert abs(b[c] - b[d] - a[c]) == 1
 
 def retrieve_commodity_data(engine, comm):
@@ -70,13 +69,16 @@ def retrieve_commodity_data(engine, comm):
   pattern = '%' + comm + '%'
   query = table.select().where(table.c[MARKET_EXCHANGE_NAME].like(pattern)).order_by(DISAGG_RECORD_DATE)
   res = engine.execute(query)
+  return res
+
+def validate_commodity_data(engine, comm):
+  res = retrieve_commodity_data(engine, comm)
   last_record = None
   for r in res:
     if last_record is not None:
       assert_date(get_record_date(last_record), get_record_date(r))
       assert_changes(last_record, r)
     last_record = r
-  return res
 
 
 if __name__ == '__main__':
@@ -88,4 +90,4 @@ if __name__ == '__main__':
     engine = sa.create_engine('sqlite:///./data/%s/db.db' % db)
     for comm in ['GOLD', 'SILVER', 'WHEAT-SRW - CHICAGO BOARD OF TRADE']:
       print 'working on', comm
-      retrieve_commodity_data(engine, comm)
+      validate_commodity_data(engine, comm)

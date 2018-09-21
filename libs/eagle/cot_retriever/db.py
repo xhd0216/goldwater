@@ -1,3 +1,5 @@
+import argparse
+from collections import namedtuple
 import datetime
 import logging
 import sqlalchemy as sa
@@ -48,6 +50,27 @@ DISAGG_CHANGES = [
 	'change_in_nonrept_short_all',
 ]
 
+DataPoint = namedtuple('DataPoint', ['date', 'long', 'short', 'c_long', 'c_short', 'price'])
+
+def get_long_pos(row):
+  return row['swap_positions_short_all'] + row['m_money_positions_long_all']
+def get_short_pos(row):
+  return row['swap_positions_long_all'] + row['m_money_positions_short_all']
+def get_long_change(row):
+  return row['change_in_swap_short_all'] + row['change_in_m_money_long_all']
+def get_short_change(row):
+  return row['change_in_swap_long_all'] + row['change_in_m_money_short_all']
+def get_data_point(row):
+  return DataPoint(get_record_date(row), get_long_pos(row), get_short_pos(row), get_long_change(row), get_short_change(row), None)
+
+def get_net_position(res):
+  ret = []
+  for row in res:
+    a = get_data_point(row)
+    ret.append(a)
+    print a
+  return ret
+
 def get_record_date(rec):
   return datetime.datetime.strptime(rec[DISAGG_RECORD_DATE], '%Y-%m-%d').date()
 
@@ -71,8 +94,8 @@ def retrieve_commodity_data(engine, comm):
   res = engine.execute(query)
   return res
 
-def validate_commodity_data(engine, comm):
-  res = retrieve_commodity_data(engine, comm)
+
+def validate_commodity_data(res):
   last_record = None
   for r in res:
     if last_record is not None:
@@ -81,13 +104,23 @@ def validate_commodity_data(engine, comm):
     last_record = r
 
 
-if __name__ == '__main__':
-  logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+def main():
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--path', action='store')
+  opts = parser.parse_args()
   # validate DFO and DFOC db
   # FO and FOC has different set of columns
+  if opts.path is None:
+    opts.path = './data'
+  db_path = 'sqlite:///%s/%%s/db.db' % opts.path
   for db in ['DFO', 'DFOC']:
     print 'working on', db
-    engine = sa.create_engine('sqlite:///./data/%s/db.db' % db)
+    engine = sa.create_engine(db_path % db)
     for comm in ['GOLD', 'SILVER', 'WHEAT-SRW - CHICAGO BOARD OF TRADE']:
       print 'working on', comm
-      validate_commodity_data(engine, comm)
+      res = retrieve_commodity_data(engine, comm)
+      get_net_position(res)
+
+if __name__ == '__main__':
+  logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+  main()

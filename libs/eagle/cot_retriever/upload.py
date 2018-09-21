@@ -65,6 +65,7 @@ def insert_to_table_2(data_path, fields_path, db_path, header_on):
   table = meta.tables[TABLE_NAME]
   conn = engine.connect()
   try:
+    print "============ inserting %s records" % len(ret)
     conn.execute(table.insert().prefix_with("OR REPLACE"), ret)
   except Exception as e:
     print e

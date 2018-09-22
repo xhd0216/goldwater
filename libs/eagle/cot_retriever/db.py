@@ -107,6 +107,8 @@ def validate_commodity_data(res):
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('--path', action='store')
+  parser.add_argument('--validate', action='store_true', default=False)
+  parser.add_argument('--commodity', action='store', default='GOLD')
   opts = parser.parse_args()
   # validate DFO and DFOC db
   # FO and FOC has different set of columns
@@ -116,9 +118,15 @@ def main():
   for db in ['DFO', 'DFOC']:
     print 'working on', db
     engine = sa.create_engine(db_path % db)
-    for comm in ['GOLD', 'SILVER', 'WHEAT-SRW - CHICAGO BOARD OF TRADE']:
+    if opts.commodity is None:
+      commods = ['GOLD', 'SILVER', 'WHEAT-SRW - CHICAGO BOARD OF TRADE']
+    else:
+      commods = [opts.commodity]
+    for comm in commods:
       print 'working on', comm
       res = retrieve_commodity_data(engine, comm)
+      if opts.validate:
+        validate_commodity_data(res)
       get_net_position(res)
 
 if __name__ == '__main__':
